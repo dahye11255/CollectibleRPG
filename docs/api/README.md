@@ -17,7 +17,7 @@
 모든 경로는 `/api`로 시작한다.
 
 | 라우터 | 파일 | API 수 | 과제 인정 | 핵심 API |
-|---|---|---:|---|---|
+| --- | --- | ---: | --- | --- |
 | Auth | [auth.md](auth.md) | 3 | 개수 미포함 | - |
 | Stage | [stages.md](stages.md) | 7 | 인정 | `POST /api/stages/:stageId/unlock` |
 | Battle (탐사) | [battles.md](battles.md) | 7 | 인정 | `POST /api/battles/:battleId/completion` |
@@ -30,7 +30,7 @@
 ## 초기 계획안 대비 변경
 
 | 초기 계획안 | 최종 | 변경 이유 |
-|---|---|---|
+| --- | --- | --- |
 | `GET /stages/:id/check-entry` + `GET /stages/:id/requirements` | `GET /api/stages/:id/requirements` (충족 여부 포함) | 같은 정보를 조회하는 중복 API를 하나로 합침 |
 | (없음) | `POST /api/stages/:id/unlock` | 해금은 상태를 바꾸므로 GET이 아니라 POST. 영구 해금 기록 |
 | `GET /stages/:id/drop-table` | `GET /api/stages/:id/drops` | URL을 명사로 |
@@ -54,7 +54,7 @@
 테스트 파일 위치: `server/tests/<라우터>.test.js` · 테스트 전용 DB 사용 · 난수와 현재 시각은 주입해서 고정
 
 | 라우터 | 핵심 API | 테스트 케이스 |
-|---|---|---|
+| --- | --- | --- |
 | Stage | 스테이지 해금 | ① 직전 Supreme 장착 → 201, 목록에서 unlocked=true ② 미장착 → 403 ③ 이미 해금 → 409 ④ 토큰 없음 → 401 |
 | Battle | 탐사 완료 및 보상 수령 | ① 종료 시각 이후 → 201, 아이템·골드 지급 ② 종료 시각 전 → 400 ③ 같은 탐사 두 번 → 409 ④ 인벤토리 가득 참 → 409 |
 | Item | 아이템 합성 | ① 4개 → 201, 재료 4개 삭제·상위 1개 생성·수수료 차감 ② 장착 장비 제외 후 3개 → 400 ③ SUPREME 재료 → 400 ④ 골드 부족 → 400 |
