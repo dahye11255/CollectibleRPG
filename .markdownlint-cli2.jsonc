@@ -1,0 +1,8 @@
+{
+  // 한글 문서라 줄 길이 제한은 끔, 같은 이름 소제목(Response 등)은 API마다 반복 허용
+  "config": {
+    "MD013": false,
+    "MD024": { "siblings_only": true }
+  },
+  "ignores": ["**/node_modules/**"]
+}
