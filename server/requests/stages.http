@@ -1,0 +1,63 @@
+### Stage 라우터 요청 모음 (VS Code "REST Client" 확장으로 실행)
+### 준비: npm run dev 로 서버 실행, auth.http 1번으로 hero01 가입을 먼저 해 둘 것
+
+@baseUrl = http://localhost:3000/api
+
+### 0-1. 로그인 (hero01) → 아래 요청에 토큰 자동 사용
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "loginId": "hero01",
+  "password": "password123"
+}
+
+### 0-2. 관리자 로그인 (7번 관리자 수정용, 시드 계정)
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "loginId": "admin",
+  "password": "admin1234"
+}
+
+### 1. 스테이지 목록 조회 → 신규 사용자는 Stage 1만 unlocked: true
+GET {{baseUrl}}/stages
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 2. 스테이지 상세 조회
+GET {{baseUrl}}/stages/2
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 3. 진입 조건 조회 → Supreme 장착 전이면 canUnlock: false
+GET {{baseUrl}}/stages/2/requirements
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 4. 드롭 테이블 조회
+GET {{baseUrl}}/stages/1/drops
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 5. 스테이지 해금 (핵심 API)
+# Supreme 장착 전 → 403
+# 성공을 보려면 아직 Character 라우터가 없으므로 Workbench에서 아래 SQL로 Stage 1 Supreme 지급·장착 후 다시 실행 → 201
+#   INSERT INTO project.user_items (user_id, item_id, acquired_from)
+#     SELECT id, 5, 'DROP' FROM project.users WHERE login_id = 'hero01';
+#   UPDATE project.users SET equipped_user_item_id = LAST_INSERT_ID() WHERE login_id = 'hero01';
+# 한 번 더 실행 → 409
+POST {{baseUrl}}/stages/2/unlock
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 6. 최초 탐사 보상 수령 → 탐사 완료 기록이 없으면 400 (Battle 라우터 구현 후 201)
+POST {{baseUrl}}/stages/1/first-clear-reward
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 7. [관리자] 스테이지 수정 → 200 (일반 사용자 토큰이면 403)
+PATCH {{baseUrl}}/stages/5
+Authorization: Bearer {{adminLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "requiredPower": 80
+}

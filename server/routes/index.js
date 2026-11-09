@@ -8,7 +8,7 @@ router.get("/health", (req, res) => sendSuccess(res, { status: "ok" }));
 
 // 라우터는 구현하면서 여기에 하나씩 연결한다.
 router.use("/auth", require("./auth"));
-// router.use("/stages", require("./stages"));
+router.use("/stages", require("./stages"));
 // router.use("/battles", require("./battles"));
 // router.use("/items", require("./items"));
 // router.use("/characters", require("./characters"));
