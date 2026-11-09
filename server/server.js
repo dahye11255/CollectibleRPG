@@ -1,4 +1,5 @@
 const app = require("./app");
+require("./config/checkEnv")();
 
 const PORT = process.env.PORT || 3000;
 

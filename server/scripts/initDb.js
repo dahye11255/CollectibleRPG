@@ -1,6 +1,7 @@
 // database/schema.sql → seed.sql 순서로 실행해 DB를 초기화한다.
 // 실행: npm run db:init   (주의: 기존 데이터가 모두 삭제됨)
 require("dotenv").config({ quiet: true });
+require("../config/checkEnv")();
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
