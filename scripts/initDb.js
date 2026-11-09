@@ -17,7 +17,7 @@ async function main() {
   });
 
   for (const file of ["schema.sql", "seed.sql"]) {
-    const sql = fs.readFileSync(path.join(__dirname, "../../database", file), "utf8");
+    const sql = fs.readFileSync(path.join(__dirname, "../database", file), "utf8");
     await conn.query(sql);
     console.log(`${file} 실행 완료`);
   }

@@ -1,6 +1,7 @@
 // Stage 관련 DB 로직. 라우터(routes/stages.js)는 요청 검사와 응답만 맡고, 실제 처리는 여기서 한다.
 const db = require("../db");
 const AppError = require("../utils/AppError");
+const { findEquippedItem } = require("./inventoryService");
 
 // 존재하는 스테이지인지 확인하고 행을 돌려준다. 없으면 404.
 async function findStageOrThrow(stageId, conn = db) {
@@ -27,19 +28,6 @@ async function findRequiredItem(stageId, conn = db) {
     [stageId - 1]
   );
   return rows[0] ? { itemId: rows[0].id, name: rows[0].name } : null;
-}
-
-// 현재 장착 중인 아이템 (없으면 itemId null, power 0)
-async function findEquipped(userId, conn = db) {
-  const [rows] = await conn.query(
-    `SELECT i.id AS itemId, i.power
-       FROM users u
-       LEFT JOIN user_items ui ON ui.id = u.equipped_user_item_id
-       LEFT JOIN items i ON i.id = ui.item_id
-      WHERE u.id = ?`,
-    [userId]
-  );
-  return { itemId: rows[0]?.itemId ?? null, power: rows[0]?.power ?? 0 };
 }
 
 // 1. 스테이지 목록 + 내 해금 여부
@@ -83,7 +71,7 @@ async function getStage(userId, stageId) {
 async function getRequirements(userId, stageId) {
   const stage = await findStageOrThrow(stageId);
   const requiredItem = await findRequiredItem(stageId);
-  const equipped = await findEquipped(userId);
+  const equipped = (await findEquippedItem(userId)) || { itemId: null, power: 0 };
   const unlocked = await isUnlocked(userId, stageId);
 
   const equippedOk = requiredItem ? equipped.itemId === requiredItem.itemId : true;
@@ -116,7 +104,7 @@ async function unlockStage(userId, stageId) {
   }
 
   const requiredItem = await findRequiredItem(stageId);
-  const equipped = await findEquipped(userId);
+  const equipped = (await findEquippedItem(userId)) || { itemId: null, power: 0 };
   if (!requiredItem || equipped.itemId !== requiredItem.itemId) {
     const need = requiredItem ? requiredItem.name : "직전 스테이지 Supreme";
     throw new AppError(403, `${need} 장비를 장착해야 해금할 수 있습니다.`);

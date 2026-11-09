@@ -3,21 +3,8 @@ const db = require("../db");
 const AppError = require("../utils/AppError");
 const cfg = require("./gameConfig");
 const { withTransaction, lockUser } = require("../utils/transaction");
-const { countItems } = require("./inventoryService");
+const { countItems, findEquippedItem } = require("./inventoryService");
 const { getReductionRates } = require("./buffService");
-
-// 장착 중인 아이템 (없으면 null)
-async function findEquippedItem(userId, conn = db) {
-  const [rows] = await conn.query(
-    `SELECT ui.id AS userItemId, i.id AS itemId, i.name, i.grade, i.power
-       FROM users u
-       JOIN user_items ui ON ui.id = u.equipped_user_item_id
-       JOIN items i ON i.id = ui.item_id
-      WHERE u.id = ?`,
-    [userId]
-  );
-  return rows[0] || null;
-}
 
 // 1. 캐릭터 상태
 async function getStatus(userId) {

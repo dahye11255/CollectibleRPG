@@ -1,5 +1,5 @@
 -- CollectibleRPG 스키마
--- 실행: server 폴더에서 npm run db:init  (schema.sql → seed.sql 순서로 실행, 기존 테이블은 삭제됨)
+-- 실행: 프로젝트 폴더에서 npm run db:init  (schema.sql → seed.sql 순서로 실행, 기존 테이블은 삭제됨)
 
 CREATE DATABASE IF NOT EXISTS project DEFAULT CHARACTER SET utf8mb4;
 USE project;

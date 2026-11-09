@@ -1,7 +1,7 @@
 {
-  "name": "server",
+  "name": "collectible-rpg",
   "version": "1.0.0",
-  "description": "",
+  "description": "CollectibleRPG REST API 서버 (Node.js·Express·MySQL)",
   "main": "server.js",
   "scripts": {
     "test": "jest --runInBand",

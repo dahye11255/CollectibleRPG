@@ -1,5 +1,6 @@
 // 아이템 지급 공유 로직. 회원가입·탐사 보상·합성은 모두 grantItem 하나만 거친다.
 // → 인벤토리 검사, 도감 기록, 빙고 배치가 어떤 경로로 얻든 똑같이 처리된다.
+const db = require("../db");
 const AppError = require("../utils/AppError");
 const { lockUser } = require("../utils/transaction");
 const bingoService = require("./bingoService");
@@ -7,6 +8,19 @@ const bingoService = require("./bingoService");
 async function countItems(conn, userId) {
   const [[{ count }]] = await conn.query("SELECT COUNT(*) AS count FROM user_items WHERE user_id = ?", [userId]);
   return count;
+}
+
+// 장착 중인 아이템 (없으면 null). Stage 해금 조건, Character 조회, Battle 전투력 검사에서 공용으로 사용
+async function findEquippedItem(userId, conn = db) {
+  const [rows] = await conn.query(
+    `SELECT ui.id AS userItemId, i.id AS itemId, i.name, i.grade, i.power
+       FROM users u
+       JOIN user_items ui ON ui.id = u.equipped_user_item_id
+       JOIN items i ON i.id = ui.item_id
+      WHERE u.id = ?`,
+    [userId]
+  );
+  return rows[0] || null;
 }
 
 // 인벤토리 빈칸 수
@@ -42,4 +56,4 @@ async function grantItem(conn, userId, itemId, acquiredFrom, { pick } = {}) {
   return { userItemId: result.insertId, newCodex, bingoCellIndex };
 }
 
-module.exports = { countItems, getFreeSlots, grantItem };
+module.exports = { countItems, getFreeSlots, grantItem, findEquippedItem };

@@ -5,7 +5,7 @@ const db = require("../db");
 const AppError = require("../utils/AppError");
 const cfg = require("./gameConfig");
 const { withTransaction, lockUser } = require("../utils/transaction");
-const { grantItem, getFreeSlots } = require("./inventoryService");
+const { grantItem, getFreeSlots, findEquippedItem } = require("./inventoryService");
 const { getReductionRates, calcDurationSec } = require("./buffService");
 const { getEffects, applyBonus, applyDiscount } = require("./researchService");
 const { rollGrade } = require("./dropService");
@@ -111,7 +111,7 @@ function toBattleSummary(b) {
 async function startBattle(userId, stageId, repeatCount) {
   try {
     return await withTransaction(async (conn) => {
-      const user = await lockUser(conn, userId);
+      await lockUser(conn, userId); // 같은 사용자의 탐사 시작 요청을 한 번에 하나씩
 
       const [[stage]] = await conn.query("SELECT * FROM stages WHERE id = ?", [stageId]);
       if (!stage) throw new AppError(404, "존재하지 않는 스테이지입니다.");
@@ -122,11 +122,8 @@ async function startBattle(userId, stageId, repeatCount) {
       ]);
       if (unlocked.length === 0) throw new AppError(403, "해금하지 않은 스테이지입니다.");
 
-      if (user.equipped_user_item_id === null) throw new AppError(400, "장비를 1개 이상 장착해야 탐사할 수 있습니다.");
-      const [[equipped]] = await conn.query(
-        "SELECT i.power FROM user_items ui JOIN items i ON i.id = ui.item_id WHERE ui.id = ?",
-        [user.equipped_user_item_id]
-      );
+      const equipped = await findEquippedItem(userId, conn);
+      if (!equipped) throw new AppError(400, "장비를 1개 이상 장착해야 탐사할 수 있습니다.");
       if (equipped.power < stage.required_power) {
         throw new AppError(403, `전투력이 부족합니다. (현재 ${equipped.power}, 필요 ${stage.required_power})`);
       }
