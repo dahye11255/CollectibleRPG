@@ -41,21 +41,22 @@ Authorization: Bearer {{login.response.body.data.token}}
 POST {{baseUrl}}/characters/me/inventory/expansions
 Authorization: Bearer {{login.response.body.data.token}}
 
-### 5. 아이템 판매 → 장착 중인 아이템이면 409 (아래 번호를 판매할 아이템 번호로 바꿔서 실행)
-DELETE {{baseUrl}}/characters/me/inventory/2
+### 5. 아이템 판매 → 장착 중인 아이템이면 409, 없는 번호면 404
+# 아래 숫자만 3번(인벤토리) 결과의 userItemId로 바꾸고 저장한 뒤 실행
+@sellItemId = 2
+DELETE {{baseUrl}}/characters/me/inventory/{{sellItemId}}
 Authorization: Bearer {{login.response.body.data.token}}
 
-### 6. 장비 장착 (핵심 API)
-# 3번(인벤토리)을 먼저 실행해야 첫 번째 아이템 번호가 들어감 (경고 'No value is resolved'는 3번을 보내면 사라짐)
-# 지금은 첫 번째 아이템이 이미 장착 중인 시작 장비라서 → 409
-# 성공(200)을 보려면 7번(해제)을 먼저 실행한 뒤 이 요청을 실행
+### 6. 장비 장착 (핵심 API) → 이미 장착 중인 번호면 409, 내 아이템이 아니면 404
+# 아래 숫자만 3번(인벤토리) 결과의 userItemId로 바꾸고 저장한 뒤 실행
+# (예: Stage 1 Supreme의 번호를 넣으면 전투력 160으로 바뀜)
+@equipItemId = 1
 PUT {{baseUrl}}/characters/me/equipment
-Authorization: Bearer
-
+Authorization: Bearer {{login.response.body.data.token}}
 Content-Type: application/json
 
 {
-  "userItemId": {{inventory.response.body.data.items[0].userItemId}}
+  "userItemId": {{equipItemId}}
 }
 
 ### 7. 장비 해제 → 장비가 없으면 404 (해제 후에는 탐사를 시작할 수 없음)
