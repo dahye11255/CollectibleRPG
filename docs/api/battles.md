@@ -251,6 +251,7 @@
 | Authorization | String | 필수 | 헤더. `Bearer <JWT 토큰>` |
 | page | Number | 선택 | query. 페이지 번호 (기본 1) |
 | size | Number | 선택 | query. 페이지 크기 (기본 10, 최대 50) |
+| status | String | 선택 | query. 상태 필터 (IN_PROGRESS·COMPLETED·CANCELED, 대소문자 무관) |
 
 ### Response
 
@@ -272,4 +273,4 @@
 ### 실패 상황
 
 - 토큰 없음·만료 → 401
-- page·size 값 오류 → 400
+- page·size·status 값 오류 → 400

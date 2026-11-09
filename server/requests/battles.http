@@ -1,0 +1,68 @@
+### Battle(탐사) 라우터 요청 모음 (VS Code "REST Client" 확장으로 실행)
+### 준비: npm run dev 로 서버 실행, 아래 '회원가입'을 먼저 실행 (npm run db:init 후에는 다시 필요)
+### Stage 1 탐사 시간은 60초. 1번(시작) 후 60초 기다렸다가 4번(완료)을 누르면 보상을 받는다.
+
+@baseUrl = http://localhost:3000/api
+
+### 회원가입 (DB 초기화 후 처음 한 번) → 201, 이미 가입했으면 409 (무시하고 다음 단계)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "loginId": "hero01",
+  "password": "password123",
+  "nickname": "hero"
+}
+
+### 0. 로그인 (hero01) → 아래 요청에 토큰 자동 사용
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "loginId": "hero01",
+  "password": "password123"
+}
+
+### 1. 탐사 시작 → 응답의 battleId가 아래 요청에 자동으로 들어감 (진행 중 탐사가 있으면 409)
+# 연속 탐사(repeatCount 2~5)는 자동 탐사 연구 레벨이 있어야 함
+# @name battle
+POST {{baseUrl}}/battles
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "stageId": 1,
+  "repeatCount": 1
+}
+
+### 2. 진행 중 탐사 → 남은 시간(remainingSec), 정산 가능한 회차(settleableRounds)
+GET {{baseUrl}}/battles/current
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 3. 탐사 상세 (회차별 보상)
+GET {{baseUrl}}/battles/{{battle.response.body.data.battleId}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 4. 탐사 완료 및 보상 수령 (핵심 API) → 60초 전이면 400, 이후 201, 한 번 더 누르면 409
+POST {{baseUrl}}/battles/{{battle.response.body.data.battleId}}/completion
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 5. 골드로 즉시 완료 (남은 10초당 1골드) → 골드가 없으면 400
+# 4번 대신 쓰는 방법. 골드는 4번 완료 보상(10골드)이나 Workbench로 지급:
+#   UPDATE project.users SET gold = 100 WHERE login_id = 'hero01';
+POST {{baseUrl}}/battles/{{battle.response.body.data.battleId}}/instant-completion
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 6. 탐사 취소 → 이미 끝난 회차는 보상 지급, 남은 회차는 취소
+PATCH {{baseUrl}}/battles/{{battle.response.body.data.battleId}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "CANCELED"
+}
+
+### 7. 탐사 기록 (필터: ?status=COMPLETED&page=1&size=10)
+GET {{baseUrl}}/battles
+Authorization: Bearer {{login.response.body.data.token}}

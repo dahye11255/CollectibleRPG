@@ -57,6 +57,15 @@ async function setBingoCells(userId, cellIndexes) {
   }
 }
 
+// 탐사 시각을 seconds초 과거로 당긴다 (실제로 기다리지 않고 "시간이 지난 상태"를 만듦)
+async function rewindBattle(battleId, seconds) {
+  await db.query(
+    `UPDATE battles SET started_at = DATE_SUB(started_at, INTERVAL ? SECOND),
+                        end_time = DATE_SUB(end_time, INTERVAL ? SECOND) WHERE id = ?`,
+    [seconds, seconds, battleId]
+  );
+}
+
 // 완료된 탐사 기록 추가 (1회차 보상까지 받은 상태, 최초 탐사 보상 테스트용)
 async function addCompletedBattle(userId, stageId) {
   const [battle] = await db.query(
@@ -88,6 +97,7 @@ module.exports = {
   setGold,
   getUser,
   setBingoCells,
+  rewindBattle,
   addCompletedBattle,
   cleanup,
 };

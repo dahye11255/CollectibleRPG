@@ -3,7 +3,11 @@
 # 준비: 다른 터미널에서 npm run dev 로 서버를 켜 둘 것
 # 매번 새 계정(demo + 시각)을 만들어 실행하므로 여러 번 돌려도 결과가 같다.
 
+#   -Full 옵션: 탐사가 끝날 때까지 61초 기다려 "탐사 → 보상 → 최초 탐사 보상 → 즉시 완료" 성공 흐름까지 확인
+#   예) powershell -ExecutionPolicy Bypass -File .\requests\demo.ps1 -Full
+
 param(
+  [switch]$Full,
   [string]$BaseUrl = "http://localhost:3000/api",
   [string]$AdminId = "admin",
   [string]$AdminPassword = "admin1234"
@@ -140,7 +144,38 @@ Invoke-Api Get "/items/bingo" 200 "빙고판 (시작 아이템 1칸)" -Token $to
 Invoke-Api Get "/items/bingo/rewards" 200 "빙고 보상 현황" -Token $token | Out-Null
 Invoke-Api Post "/items/bingo/rewards/1" 400 "빙고 보상: 빙고 부족" -Token $token | Out-Null
 Invoke-Api Post "/items/bingo/rewards/2" 404 "빙고 보상: 없는 단계" -Token $token | Out-Null
-Write-Host "  (합성·보상 성공 흐름은 아이템 획득 경로인 Battle 라우터 구현 후 추가)" -ForegroundColor DarkGray
+
+# ───────────── Battle ─────────────
+Write-Section "Battle (탐사)"
+Invoke-Api Post "/battles" 400 "탐사 시작: stageId 누락" @{} -Token $token | Out-Null
+Invoke-Api Post "/battles" 403 "탐사 시작: 미해금 스테이지" @{ stageId = 2 } -Token $token | Out-Null
+Invoke-Api Post "/battles" 400 "탐사 시작: 연구 없이 연속 2회" @{ stageId = 1; repeatCount = 2 } -Token $token | Out-Null
+$battle = Invoke-Api Post "/battles" 201 "탐사 시작 (Stage 1, 60초)" @{ stageId = 1 } -Token $token
+$battleId = $battle.data.battleId
+Invoke-Api Post "/battles" 409 "탐사 시작: 이미 진행 중" @{ stageId = 1 } -Token $token | Out-Null
+Invoke-Api Get "/battles/current" 200 "진행 중 탐사" -Token $token | Out-Null
+Invoke-Api Get "/battles/$battleId" 200 "탐사 상세" -Token $token | Out-Null
+Invoke-Api Post "/battles/$battleId/completion" 400 "완료 (핵심): 종료 시각 전" -Token $token | Out-Null
+Invoke-Api Post "/battles/$battleId/instant-completion" 400 "즉시 완료: 골드 부족" -Token $token | Out-Null
+Invoke-Api Patch "/battles/$battleId" 400 "취소: 잘못된 status" @{ status = "DONE" } -Token $token | Out-Null
+
+if ($Full) {
+  Write-Host "  탐사 종료까지 61초 기다립니다..." -ForegroundColor Yellow
+  Start-Sleep -Seconds 61
+  Invoke-Api Post "/battles/$battleId/completion" 201 "완료 (핵심): 아이템 1개 + 10골드" -Token $token | Out-Null
+  Invoke-Api Post "/battles/$battleId/completion" 409 "완료 (핵심): 같은 탐사 두 번" -Token $token | Out-Null
+  Invoke-Api Post "/stages/1/first-clear-reward" 201 "최초 탐사 보상 (100골드)" -Token $token | Out-Null
+  Invoke-Api Post "/stages/1/first-clear-reward" 409 "최초 탐사 보상: 두 번" -Token $token | Out-Null
+  $second = Invoke-Api Post "/battles" 201 "두 번째 탐사 시작" @{ stageId = 1 } -Token $token
+  Invoke-Api Post "/battles/$($second.data.battleId)/instant-completion" 201 "즉시 완료 (골드 사용)" -Token $token | Out-Null
+  Invoke-Api Get "/items/bingo" 200 "빙고판 (획득한 아이템 반영)" -Token $token | Out-Null
+  Invoke-Api Get "/characters/me/inventory" 200 "인벤토리 (보상 아이템 반영)" -Token $token | Out-Null
+} else {
+  Invoke-Api Patch "/battles/$battleId" 200 "취소: 보상 없이 취소" @{ status = "CANCELED" } -Token $token | Out-Null
+  Invoke-Api Patch "/battles/$battleId" 409 "취소: 이미 취소됨" @{ status = "CANCELED" } -Token $token | Out-Null
+  Write-Host "  (보상 성공 흐름은 -Full 옵션으로 실행: 61초 대기)" -ForegroundColor DarkGray
+}
+Invoke-Api Get "/battles" 200 "탐사 기록" -Token $token | Out-Null
 
 # ───────────── 결과 ─────────────
 Write-Host ""
