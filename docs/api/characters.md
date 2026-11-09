@@ -30,13 +30,15 @@
 | nickname | 2 | 문자열 | 닉네임 |
 | gold | 2 | 숫자 | 골드 잔액 |
 | equippedItem | 2 | 객체/null | 착용 중인 장비 |
-| timeReductionRate | 2 | 숫자 | 적용 중인 영구 단축 버프(%) |
+| codexReductionRate | 2 | 숫자 | 도감 단축률 합계(%) (최대 25) |
+| bingoReductionRate | 2 | 숫자 | 빙고 단축률 합계(%) (최대 20) |
+| totalReductionRate | 2 | 숫자 | 다음 탐사부터 적용할 단축률(%) = min(도감 + 빙고, 45) |
 | error | 1 | 에러 문자열 | 실패 시 실패 이유 |
 
 ### JSON 예시 (성공, 200)
 
 ```json
-{ "result": "success", "data": { "nickname": "용사", "gold": 120, "equippedItem": { "userItemId": 3, "name": "Stage 1 Common" }, "timeReductionRate": 10 } }
+{ "result": "success", "data": { "nickname": "용사", "gold": 120, "equippedItem": { "userItemId": 3, "name": "Stage 1 Common" }, "codexReductionRate": 5, "bingoReductionRate": 10, "totalReductionRate": 15 } }
 ```
 
 ### 실패 상황
@@ -58,14 +60,16 @@
 | result | 1 | success/fail | 요청 성공·실패 여부 |
 | data | 1 | 객체 | 성공 시 결과 |
 | power | 2 | 숫자 | 현재 전투력 (장착 장비 기준) |
-| timeReductionRate | 2 | 숫자 | 도감 영구 단축 버프 합계(%) |
+| codexReductionRate | 2 | 숫자 | 도감 단축률 합계(%) (최대 25) |
+| bingoReductionRate | 2 | 숫자 | 빙고 단축률 합계(%) (최대 20) |
+| totalReductionRate | 2 | 숫자 | 다음 탐사부터 적용할 단축률(%) = min(도감 + 빙고, 45) |
 | completedCodexStages | 2 | 배열 | 도감 보상을 받은 스테이지 번호 |
 | error | 1 | 에러 문자열 | 실패 시 실패 이유 |
 
 ### JSON 예시 (성공, 200)
 
 ```json
-{ "result": "success", "data": { "power": 10, "timeReductionRate": 10, "completedCodexStages": [1, 2] } }
+{ "result": "success", "data": { "power": 10, "codexReductionRate": 10, "bingoReductionRate": 0, "totalReductionRate": 10, "completedCodexStages": [1, 2] } }
 ```
 
 ### 실패 상황

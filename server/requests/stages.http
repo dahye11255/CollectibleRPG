@@ -1,7 +1,17 @@
 ### Stage 라우터 요청 모음 (VS Code "REST Client" 확장으로 실행)
-### 준비: npm run dev 로 서버 실행, auth.http 1번으로 hero01 가입을 먼저 해 둘 것
+### 준비: npm run dev 로 서버 실행, 아래 '회원가입'을 먼저 실행 (npm run db:init 후에는 다시 필요)
 
 @baseUrl = http://localhost:3000/api
+
+### 회원가입 (DB 초기화 후 처음 한 번) → 201, 이미 가입했으면 409 (무시하고 다음 단계)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "loginId": "hero01",
+  "password": "password123",
+  "nickname": "hero"
+}
 
 ### 0-1. 로그인 (hero01) → 아래 요청에 토큰 자동 사용
 # @name login

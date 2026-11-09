@@ -10,7 +10,7 @@ router.get("/health", (req, res) => sendSuccess(res, { status: "ok" }));
 router.use("/auth", require("./auth"));
 router.use("/stages", require("./stages"));
 // router.use("/battles", require("./battles"));
-// router.use("/items", require("./items"));
-// router.use("/characters", require("./characters"));
+router.use("/items", require("./items"));
+router.use("/characters", require("./characters"));
 
 module.exports = router;

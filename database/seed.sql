@@ -31,6 +31,20 @@ INSERT INTO synthesis_recipes (from_grade, to_grade, required_count, fee) VALUES
   ('EPIC', 'ANCIENT', 4, 160),
   ('ANCIENT', 'SUPREME', 4, 640);
 
+-- 빙고 보상: 1빙고 10%, 3빙고 5%, 5빙고 5% (합계 최대 20%)
+INSERT INTO bingo_reward_tiers (threshold, reduction_rate) VALUES
+  (1, 10.00),
+  (3, 5.00),
+  (5, 5.00);
+
+-- 연구 5종 (비용 = base_cost × cost_multiplier^현재레벨, 올림)
+INSERT INTO research_types (id, name, description, max_level, base_cost, cost_multiplier, effect_per_level) VALUES
+  ('luck', '행운 연구', 'Common 확률을 레벨당 2%p 줄이고 상위 등급(UC 1, EP 0.6, A 0.3, S 0.1%p)으로 옮긴다', 5, 100, 1.50, 2.00),
+  ('alchemy', '연금술 연구', '합성 수수료를 레벨당 5% 줄인다', 5, 100, 1.50, 5.00),
+  ('trade', '교역 연구', '탐사 완료 골드 보상을 레벨당 10% 늘린다', 5, 100, 1.50, 10.00),
+  ('chrono', '시간술 연구', '즉시 완료 비용을 레벨당 10% 줄인다', 5, 100, 1.50, 10.00),
+  ('auto-explore', '자동 탐사 연구', '한 번에 예약할 수 있는 연속 탐사 횟수를 레벨당 1회 늘린다 (기본 1회, 최대 5회)', 4, 300, 2.00, 1.00);
+
 -- 관리자 계정 (ID: admin / 비밀번호: admin1234)
 INSERT INTO users (login_id, password_hash, nickname, role) VALUES
   ('admin', '$2b$10$xtmUXpRNqED4gOP3U39N8e14oYDaOMcdUdNAhcxI136wzbbzHKQ0.', '관리자', 'admin');

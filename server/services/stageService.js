@@ -33,9 +33,9 @@ async function findRequiredItem(stageId, conn = db) {
 async function findEquipped(userId, conn = db) {
   const [rows] = await conn.query(
     `SELECT i.id AS itemId, i.power
-        FROM users u
-        LEFT JOIN user_items ui ON ui.id = u.equipped_user_item_id
-        LEFT JOIN items i ON i.id = ui.item_id
+       FROM users u
+       LEFT JOIN user_items ui ON ui.id = u.equipped_user_item_id
+       LEFT JOIN items i ON i.id = ui.item_id
       WHERE u.id = ?`,
     [userId]
   );
@@ -47,8 +47,8 @@ async function listStages(userId) {
   const [rows] = await db.query(
     `SELECT s.id, s.name, s.required_power, s.base_duration_sec,
             (su.user_id IS NOT NULL) AS unlocked
-        FROM stages s
-        LEFT JOIN stage_unlocks su ON su.stage_id = s.id AND su.user_id = ?
+       FROM stages s
+       LEFT JOIN stage_unlocks su ON su.stage_id = s.id AND su.user_id = ?
       ORDER BY s.id`,
     [userId]
   );
@@ -144,8 +144,11 @@ async function claimFirstClearReward(userId, stageId) {
     await conn.beginTransaction();
     const stage = await findStageOrThrow(stageId, conn);
 
+    // 회차 보상을 1번이라도 받았으면 탐사를 완료한 것 (연속 탐사의 일부 회차 포함)
     const [cleared] = await conn.query(
-      "SELECT 1 FROM battles WHERE user_id = ? AND stage_id = ? AND status = 'COMPLETED' LIMIT 1",
+      `SELECT 1 FROM battle_rewards br
+         JOIN battles b ON b.id = br.battle_id
+        WHERE b.user_id = ? AND b.stage_id = ? LIMIT 1`,
       [userId, stageId]
     );
     if (cleared.length === 0) {

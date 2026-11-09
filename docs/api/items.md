@@ -2,6 +2,8 @@
 
 - 기본 경로: `/api/items`
 - 응답 형식: `result` / `data` / `error`
+- 빙고 규칙: 아이템 종류를 처음 얻으면(드롭·합성·가입 시작 아이템) 5×5 판의 빈칸 하나에 무작위 배치, 위치 영구 유지. 가로 5·세로 5·대각선 2 = 최대 12빙고. 1·3·5빙고 보상(탐사 시간 10%·5%·5% 단축, 빙고 최대 20%)
+- 경로 순서: `/codex`, `/recipes`, `/bingo` 같은 고정 경로를 `/:itemId`보다 먼저 등록한다
 
 | # | 메서드 | URL | 기능 |
 | --- | --- | --- | --- |
@@ -12,6 +14,9 @@
 | 5 | POST | `/api/items/codex/:stageId/reward` | 도감 보상 수령 API |
 | 6 | GET | `/api/items/recipes` | 합성 규칙 조회 API |
 | 7 | POST | `/api/items/syntheses` | 아이템 합성 API **(핵심)** |
+| 8 | GET | `/api/items/bingo` | 빙고판 조회 API |
+| 9 | GET | `/api/items/bingo/rewards` | 빙고 보상 현황 조회 API |
+| 10 | POST | `/api/items/bingo/rewards/:threshold` | 빙고 보상 수령 API |
 
 ## 1. 전체 아이템 목록 조회 API
 
@@ -165,13 +170,15 @@
 | data | 1 | 객체 | 성공 시 결과 |
 | stageId | 2 | 숫자 | 보상을 받은 스테이지 |
 | earnedGold | 2 | 숫자 | 받은 보상 골드 |
-| timeReductionRate | 2 | 숫자 | 수령 후 탐사 시간 단축률 합계(%) (최대 25) |
+| codexReductionRate | 2 | 숫자 | 도감 단축률 합계(%) (최대 25) |
+| bingoReductionRate | 2 | 숫자 | 빙고 단축률 합계(%) (최대 20) |
+| totalReductionRate | 2 | 숫자 | 다음 탐사부터 적용할 단축률(%) = min(도감 + 빙고, 45) |
 | error | 1 | 에러 문자열 | 실패 시 실패 이유 |
 
 ### JSON 예시 (성공, 201)
 
 ```json
-{ "result": "success", "data": { "stageId": 1, "earnedGold": 200, "timeReductionRate": 5 } }
+{ "result": "success", "data": { "stageId": 1, "earnedGold": 200, "codexReductionRate": 5, "bingoReductionRate": 0, "totalReductionRate": 5 } }
 ```
 
 ### 실패 상황
@@ -199,13 +206,14 @@
 | fromGrade | 3 | 문자열 | 재료 등급 |
 | toGrade | 3 | 문자열 | 결과 등급 |
 | requiredCount | 3 | 숫자 | 필요 개수 (4) |
-| fee | 3 | 숫자 | 골드 수수료 |
+| baseFee | 3 | 숫자 | 기본 골드 수수료 |
+| fee | 3 | 숫자 | 내게 적용되는 수수료 (연금술 연구 할인 반영, 올림) |
 | error | 1 | 에러 문자열 | 실패 시 실패 이유 |
 
 ### JSON 예시 (성공, 200)
 
 ```json
-{ "result": "success", "data": { "recipes": [ { "fromGrade": "COMMON", "toGrade": "UNCOMMON", "requiredCount": 4, "fee": 10 } ] } }
+{ "result": "success", "data": { "recipes": [ { "fromGrade": "COMMON", "toGrade": "UNCOMMON", "requiredCount": 4, "baseFee": 10, "fee": 10 } ] } }
 ```
 
 ### 실패 상황
@@ -229,14 +237,17 @@
 | result | 1 | success/fail | 요청 성공·실패 여부 |
 | data | 1 | 객체 | 성공 시 결과 |
 | newItem | 2 | 객체 | 생성된 상위 등급 아이템 (userItemId, name, grade) |
+| newCodex | 2 | true/false | 처음 얻은 종류인지 (도감 신규 등록) |
+| bingoCellIndex | 2 | 숫자/null | 처음 얻은 종류면 빙고판에 배치된 칸 번호 |
 | consumedItemIds | 2 | 배열 | 소모된 보유 아이템 번호 4개 (장착 장비 자동 제외) |
+| spentFee | 2 | 숫자 | 사용한 수수료 (연금술 연구 할인 반영) |
 | gold | 2 | 숫자 | 수수료 차감 후 보유 골드 |
 | error | 1 | 에러 문자열 | 실패 시 실패 이유 |
 
 ### JSON 예시 (성공, 201)
 
 ```json
-{ "result": "success", "data": { "newItem": { "userItemId": 31, "name": "Stage 1 Uncommon", "grade": "UNCOMMON" }, "consumedItemIds": [4, 5, 6, 7], "gold": 110 } }
+{ "result": "success", "data": { "newItem": { "userItemId": 31, "name": "Stage 1 Uncommon", "grade": "UNCOMMON" }, "newCodex": true, "bingoCellIndex": 8, "consumedItemIds": [4, 5, 6, 7], "spentFee": 10, "gold": 110 } }
 ```
 
 ### 실패 상황
@@ -245,3 +256,102 @@
 - 필수값 누락·SUPREME 재료 → 400
 - 장착 장비 제외 후 재료 4개 미만 → 400
 - 골드 부족 → 400
+
+## 8. 빙고판 조회 API
+
+**Request:** `GET /api/items/bingo` (로그인 필요)
+
+| Parameter | 타입 | 필수여부 | 설명 |
+| --- | --- | --- | --- |
+| Authorization | String | 필수 | 헤더. `Bearer <JWT 토큰>` |
+
+### Response
+
+| Element | Depth | 값 구분 | 설명 |
+| --- | --- | --- | --- |
+| result | 1 | success/fail | 요청 성공·실패 여부 |
+| data | 1 | 객체 | 성공 시 결과 |
+| board | 2 | 배열 (5×5) | 행 단위 2차원 배열. 칸은 아이템 객체 또는 null |
+| filledCount | 2 | 숫자 | 채운 칸 수 (0~25) |
+| lines | 2 | 배열 | 완성된 줄 (type: row/column/diagonal, index) |
+| lineCount | 2 | 숫자 | 완성된 빙고 수 (0~12) |
+| error | 1 | 에러 문자열 | 실패 시 실패 이유 |
+
+### JSON 예시 (성공, 200)
+
+```json
+{ "result": "success", "data": { "board": [ [ null, { "itemId": 1, "name": "Stage 1 Common", "stageId": 1, "grade": "COMMON" }, null, null, null ], [ null, null, null, null, null ], [ null, null, null, null, null ], [ null, null, null, null, null ], [ null, null, null, null, null ] ], "filledCount": 1, "lines": [], "lineCount": 0 } }
+```
+
+### 실패 상황
+
+- 토큰 없음·만료 → 401
+
+## 9. 빙고 보상 현황 조회 API
+
+**Request:** `GET /api/items/bingo/rewards` (로그인 필요)
+
+| Parameter | 타입 | 필수여부 | 설명 |
+| --- | --- | --- | --- |
+| Authorization | String | 필수 | 헤더. `Bearer <JWT 토큰>` |
+
+### Response
+
+| Element | Depth | 값 구분 | 설명 |
+| --- | --- | --- | --- |
+| result | 1 | success/fail | 요청 성공·실패 여부 |
+| data | 1 | 객체 | 성공 시 결과 |
+| lineCount | 2 | 숫자 | 현재 빙고 수 |
+| bingoReductionRate | 2 | 숫자 | 받은 빙고 단축률 합계(%) (최대 20) |
+| tiers | 2 | 배열 | 단계별 현황 |
+| threshold | 3 | 숫자 | 필요 빙고 수 (1·3·5) |
+| reductionRate | 3 | 숫자 | 단축률(%) |
+| achieved | 3 | true/false | 달성 여부 |
+| claimed | 3 | true/false | 수령 여부 |
+| claimedAt | 3 | 날짜 문자열/null | 수령 시각 |
+| error | 1 | 에러 문자열 | 실패 시 실패 이유 |
+
+### JSON 예시 (성공, 200)
+
+```json
+{ "result": "success", "data": { "lineCount": 1, "bingoReductionRate": 0, "tiers": [ { "threshold": 1, "reductionRate": 10, "achieved": true, "claimed": false, "claimedAt": null } ] } }
+```
+
+### 실패 상황
+
+- 토큰 없음·만료 → 401
+
+## 10. 빙고 보상 수령 API
+
+**Request:** `POST /api/items/bingo/rewards/:threshold` (로그인 필요)
+
+| Parameter | 타입 | 필수여부 | 설명 |
+| --- | --- | --- | --- |
+| Authorization | String | 필수 | 헤더. `Bearer <JWT 토큰>` |
+| threshold | Number | 필수 | path. 보상 단계 (1·3·5) |
+
+### Response
+
+| Element | Depth | 값 구분 | 설명 |
+| --- | --- | --- | --- |
+| result | 1 | success/fail | 요청 성공·실패 여부 |
+| data | 1 | 객체 | 성공 시 결과 |
+| threshold | 2 | 숫자 | 수령한 단계 |
+| reductionRate | 2 | 숫자 | 이번에 받은 단축률(%) |
+| bingoReductionRate | 2 | 숫자 | 빙고 단축률 합계(%) (최대 20) |
+| codexReductionRate | 2 | 숫자 | 도감 단축률 합계(%) (최대 25) |
+| totalReductionRate | 2 | 숫자 | 다음 탐사부터 적용할 단축률(%) = min(도감 + 빙고, 45) |
+| error | 1 | 에러 문자열 | 실패 시 실패 이유 |
+
+### JSON 예시 (성공, 201)
+
+```json
+{ "result": "success", "data": { "threshold": 1, "reductionRate": 10, "bingoReductionRate": 10, "codexReductionRate": 5, "totalReductionRate": 15 } }
+```
+
+### 실패 상황
+
+- 토큰 없음·만료 → 401
+- 없는 단계 (1·3·5가 아님) → 404
+- 빙고 수 부족 → 400
+- 이미 수령함 → 409
