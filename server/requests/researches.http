@@ -1,0 +1,68 @@
+### Research(연구소) 라우터 요청 모음 (VS Code "REST Client" 확장으로 실행)
+### 준비: npm run dev 로 서버 실행, 아래 '회원가입'을 먼저 실행 (npm run db:init 후에는 다시 필요)
+
+@baseUrl = http://localhost:3000/api
+
+### 회원가입 (DB 초기화 후 처음 한 번) → 201, 이미 가입했으면 409 (무시하고 다음 단계)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "loginId": "hero01",
+  "password": "password123",
+  "nickname": "hero"
+}
+
+### 0-1. 로그인 (hero01) → 아래 요청에 토큰 자동 사용
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "loginId": "hero01",
+  "password": "password123"
+}
+
+### 0-2. 관리자 로그인 (6번 관리자 수정용, 시드 계정)
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "loginId": "admin",
+  "password": "admin1234"
+}
+
+### 1. 연구 목록 → 5종, 내 레벨, 다음 비용
+GET {{baseUrl}}/researches
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 2. 적용 효과 → 행운 반영 드롭 확률, 할인율, 골드 보너스, 연속 탐사 횟수
+GET {{baseUrl}}/researches/effects
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 3. 연구 기록 (최신순)
+GET {{baseUrl}}/researches/history
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 4. 연구 상세 → 레벨별 비용·효과 표 (luck / alchemy / trade / chrono / auto-explore)
+GET {{baseUrl}}/researches/luck
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 5. 연구 레벨업 (핵심 API) → 골드가 없으면 400, 최대 레벨이면 409
+# 골드 지급: Workbench에서  UPDATE project.users SET gold = 1000 WHERE login_id = 'hero01';
+POST {{baseUrl}}/researches/luck/upgrades
+Authorization: Bearer {{login.response.body.data.token}}
+
+### 6. [관리자] 연구 수치 수정 → 일반 사용자 토큰이면 403
+PATCH {{baseUrl}}/researches/trade
+Authorization: Bearer {{adminLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "baseCost": 100
+}
+
+### 7. 연구 초기화 → 사용한 골드의 50% 환급, Lv0이면 409
+DELETE {{baseUrl}}/researches/luck
+Authorization: Bearer {{login.response.body.data.token}}

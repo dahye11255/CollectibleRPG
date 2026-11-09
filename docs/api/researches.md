@@ -133,6 +133,7 @@
 | description | 2 | 문자열 | 설명 |
 | level | 2 | 숫자 | 내 레벨 |
 | maxLevel | 2 | 숫자 | 최대 레벨 |
+| effectUnit | 2 | 문자열 | 효과 단위 (%p / % / 회) |
 | levels | 2 | 배열 | 레벨별 표 (level, cost: 그 레벨로 올리는 비용, effect: 누적 효과) |
 | error | 1 | 에러 문자열 | 실패 시 실패 이유 |
 
